@@ -2,7 +2,7 @@
   "name": "AmwDigital",
   "short_name": "AmwDigital",
   "description": "Calculadora de pedidos para empresarios de venta directa",
-  "start_url": "./index.html",
+  "start_url": "/Empresario/",
   "display": "standalone",
   "background_color": "#1D7A52",
   "theme_color": "#1D7A52",
