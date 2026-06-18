@@ -449,17 +449,21 @@ const LANG={
 // ═══════════════════════════════════════════
 // COUNTRIES
 // ═══════════════════════════════════════════
+const AMWAY_SHEET_ID = '1EiMWr8BYAscQjfzg-sQ4l9448hbLel7S0Roxf28-lYY';
 const COUNTRIES={
-  AR:{name:'Argentina', flag:'🇦🇷', symbol:'$',  iva:21, locale:'es-AR'},
-  UY:{name:'Uruguay',   flag:'🇺🇾', symbol:'$U', iva:22, locale:'es-UY'},
-  CL:{name:'Chile',     flag:'🇨🇱', symbol:'$',  iva:19, locale:'es-CL'},
-  MX:{name:'México',    flag:'🇲🇽', symbol:'$',  iva:16, locale:'es-MX'},
-  CO:{name:'Colombia',  flag:'🇨🇴', symbol:'$',  iva:19, locale:'es-CO'},
-  PE:{name:'Perú',      flag:'🇵🇪', symbol:'S/', iva:18, locale:'es-PE'},
-  BR:{name:'Brasil',    flag:'🇧🇷', symbol:'R$', iva:12, locale:'pt-BR'},
-  EC:{name:'Ecuador',   flag:'🇪🇨', symbol:'$',  iva:12, locale:'es-EC'},
-  PA:{name:'Panamá',    flag:'🇵🇦', symbol:'B/', iva:7,  locale:'es-PA'},
-  GT:{name:'Guatemala', flag:'🇬🇹', symbol:'Q',  iva:12, locale:'es-GT'},
+  AR:{name:'Argentina',    flag:'🇦🇷', symbol:'$',  iva:21, locale:'es-AR', sheet:'Precios_AR'},
+  MX:{name:'México',       flag:'🇲🇽', symbol:'$',  iva:16, locale:'es-MX', sheet:'Precios_MX'},
+  CO:{name:'Colombia',     flag:'🇨🇴', symbol:'$',  iva:19, locale:'es-CO', sheet:'Precios_CO'},
+  CL:{name:'Chile',        flag:'🇨🇱', symbol:'$',  iva:19, locale:'es-CL', sheet:'Precios_CL'},
+  UY:{name:'Uruguay',      flag:'🇺🇾', symbol:'$U', iva:22, locale:'es-UY', sheet:'Precios_UY'},
+  GT:{name:'Guatemala',    flag:'🇬🇹', symbol:'Q',  iva:12, locale:'es-GT', sheet:'Precios_GT'},
+  SV:{name:'El Salvador',  flag:'🇸🇻', symbol:'$',  iva:13, locale:'es-SV', sheet:'Precios_SV'},
+  HN:{name:'Honduras',     flag:'🇭🇳', symbol:'L',  iva:15, locale:'es-HN', sheet:'Precios_HN'},
+  PA:{name:'Panamá',       flag:'🇵🇦', symbol:'B/', iva:7,  locale:'es-PA', sheet:'Precios_PA'},
+  CR:{name:'Costa Rica',   flag:'🇨🇷', symbol:'₡',  iva:13, locale:'es-CR', sheet:'Precios_CR'},
+  PE:{name:'Perú',         flag:'🇵🇪', symbol:'S/', iva:18, locale:'es-PE'},
+  EC:{name:'Ecuador',      flag:'🇪🇨', symbol:'$',  iva:12, locale:'es-EC'},
+  BR:{name:'Brasil',       flag:'🇧🇷', symbol:'R$', iva:12, locale:'pt-BR'},
 };
 
 // ═══════════════════════════════════════════
@@ -783,25 +787,24 @@ function saveSyncUrl(){
   toast(T('save')+' ✓');
   if(url)syncPrices();
 }
-function loadGviz(sheetId,gid){
+function loadGviz(sheetId, sheetName){
   return new Promise((resolve,reject)=>{
     const cb='_gv'+Date.now();
     const s=document.createElement('script');
     const t=setTimeout(()=>{s.remove();delete window[cb];reject(new Error('timeout'));},15000);
     window[cb]=(r)=>{clearTimeout(t);s.remove();delete window[cb];r.status==='ok'?resolve(r.table):reject(new Error(r.status||'err'));};
     s.onerror=()=>{clearTimeout(t);s.remove();delete window[cb];reject(new Error('net'));};
-    s.src=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:${cb}&gid=${gid}`;
+    s.src=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}`;
     document.head.appendChild(s);
   });
 }
 
 async function syncPrices(){
-  const url=localStorage.getItem('syncUrl_'+country);
-  if(!url){toast(T('no_sync_url'));return;}
   toast(T('syncing'));
   try{
-    const gidMatch=url.match(/gid=(\d+)/);
-    const table=await loadGviz('1EiMWr8BYAscQjfzg-sQ4l9448hbLel7S0Roxf28-lYY', gidMatch?gidMatch[1]:'1781130644');
+    const sheetName = COUNTRIES[country]?.sheet;
+    if(!sheetName){toast(T('no_sync_url'));return;}
+    const table=await loadGviz(AMWAY_SHEET_ID, sheetName);
     const cols=table.cols.map(c=>c.label.toLowerCase());
     const fi=pats=>cols.findIndex(c=>pats.some(p=>c.includes(p)));
     const nk=fi(['nombre','name','producto']);
@@ -1500,7 +1503,7 @@ function showClientLinkModal(){
   const savedTel = localStorage.getItem('clientWaTel') || '';
   const savedNom = localStorage.getItem('clientNombre') || '';
   const existingLink = savedTel
-    ? CLIENT_APP_URL + '/#tel=' + savedTel + '&nombre=' + encodeURIComponent(savedNom||'Mi Tienda AmwDigital')
+    ? CLIENT_APP_URL + '/#tel=' + savedTel + '&nombre=' + encodeURIComponent(savedNom||'Mi Tienda AmwDigital') + '&pais=' + country
     : '';
   document.getElementById('mbox').innerHTML=`
     <div class="mtitle">🔗 Link para clientes</div>
@@ -1529,7 +1532,7 @@ function generateClientLink(){
   if(!tel){ alert('Ingresá tu número de WhatsApp'); return; }
   localStorage.setItem('clientWaTel', tel);
   localStorage.setItem('clientNombre', nom);
-  const link = CLIENT_APP_URL + '/#tel=' + tel + '&nombre=' + encodeURIComponent(nom);
+  const link = CLIENT_APP_URL + '/#tel=' + tel + '&nombre=' + encodeURIComponent(nom) + '&pais=' + country;
   document.getElementById('cl-link-text').textContent = link;
   document.getElementById('cl-result').style.display = 'block';
 }
@@ -1632,11 +1635,9 @@ updateBadge();
 updateClientModeUI();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 
-// Auto-sync al abrir: si hay URL configurada y pasó más de 1 hora desde el último sync
+// Auto-sync al abrir: si el país tiene sheet configurado y pasó más de 1 hora
 (function autoSync(){
-  const SYNC_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hT4SJxlkUtxUoqkhFqiAahgB5zME7g7LGjXTyOaZFT1luygOYtAfd1I-UC9dJccTDMNK15miYe03/pub?gid=1781130644&single=true&output=csv';
-  const key = 'syncUrl_' + country;
-  if(!localStorage.getItem(key)) localStorage.setItem(key, SYNC_URL);
+  if(!COUNTRIES[country]?.sheet) return;
   const lastRaw = localStorage.getItem('lastSyncTs_' + country);
   const elapsed = lastRaw ? Date.now() - parseInt(lastRaw) : Infinity;
   if(elapsed > 60 * 60 * 1000) {
