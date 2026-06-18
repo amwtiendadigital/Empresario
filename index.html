@@ -615,10 +615,12 @@ const DEFAULT_PRODS = [
    desc:'Detergente líquido concentrado biodegradable. Alta eficacia en ropa oscura y delicada. Ideal para lavado a mano.'},
   {id:'110480',n:'SA8 Suavizante Concentrado 1 L',cat:'Hogar',sub:'Amway Home',cod:'110480',emp:23490,pub:31320,pts:3.70,
    desc:'Suavizante concentrado de larga fragancia. Suaviza las fibras y reduce la electricidad estática.'},
-  {id:'E0001',n:'L.O.C. Limpiador Multiusos',cat:'Hogar',sub:'Amway Home',cod:'E0001',emp:22557,pub:30076,pts:3.56,
+  {id:'0001',n:'L.O.C. Limpiador Concentrado Multiusos',cat:'Hogar',sub:'Amway Home',cod:'0001',emp:22557,pub:30076,pts:3.56,
    desc:'Limpiador concentrado multiusos biodegradable. Una botella reemplaza múltiples productos de limpieza del hogar.'},
-  {id:'E3878',n:'Pursue Limpiador Desinfectante',cat:'Hogar',sub:'Amway Home',cod:'E3878',emp:25079.25,pub:33439,pts:3.95,
+  {id:'3878',n:'Pursue Limpiador Desinfectante',cat:'Hogar',sub:'Amway Home',cod:'3878',emp:25079.25,pub:33439,pts:3.95,
    desc:'Desinfectante de superficies que elimina el 99.9% de bacterias. Sin residuos tóxicos, seguro para toda la familia.'},
+  {id:'5113',n:'Tapa Vertedora y Medidora',cat:'Hogar',sub:'Amway Home',cod:'5113',emp:3500,pub:4667,pts:0.55,
+   desc:'Tapa vertedora con medidor incorporado. Facilita el dosificado preciso de productos concentrados como L.O.C. y Dish Drops.'},
 ];
 
 const PROVINCIAS = [
@@ -815,13 +817,13 @@ async function syncPrices(){
     const ptk=fi(['punto','pts','point']);
     const gv=(r,k)=>k>=0?String(r.c[k]?.v??''):'';
     const num=v=>parseFloat(String(v).replace(/[$,"]/g,''))||0;
-    const imp=table.rows.map((r,i)=>({
-      id:gv(r,ck)||String(i),n:gv(r,nk)||'Sin nombre',
-      cat:gv(r,catk)||'Importados',sub:'',
-      cod:gv(r,ck)||'',desc:'',
-      emp:num(gv(r,ek)),pub:num(gv(r,pk)),
-      pts:num(gv(r,ptk))
-    })).filter(p=>p.n&&p.emp>0);
+    const COD_FIX={'l.o.c.':'0001','pursue':'3878','tapa vertedora':'5113','tapa medidora':'5113'};
+    const imp=table.rows.map((r,i)=>{
+      let cod=gv(r,ck)||'';
+      const name=gv(r,nk)||'Sin nombre';
+      if(!cod){const key=Object.keys(COD_FIX).find(k=>name.toLowerCase().includes(k));if(key)cod=COD_FIX[key];}
+      return{id:cod||String(i),n:name,cat:gv(r,catk)||'Importados',sub:'',cod,desc:'',emp:num(gv(r,ek)),pub:num(gv(r,pk)),pts:num(gv(r,ptk))};
+    }).filter(p=>p.n&&p.emp>0);
     if(!imp.length){toast(T('sync_error')+' 0');return;}
     prods=imp;saveProds();
     localStorage.setItem('lastSync_'+country,new Date().toLocaleString(COUNTRIES[country].locale));
