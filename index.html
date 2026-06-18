@@ -838,7 +838,7 @@ async function syncPrices(){
     const ptk=fi(['punto','pts','point']);
     const gv=(r,k)=>k>=0?String(r.c[k]?.v??''):'';
     const num=v=>parseFloat(String(v).replace(/[$,"]/g,''))||0;
-    const COD_FIX={'l.o.c.':'0001','pursue':'3878','tapa vertedora':'5113','tapa medidora':'5113','black cohosh':'8085'};
+    const COD_FIX={'l.o.c.':'0001','pursue':'3878','tapa vertedora':'5113','tapa medidora':'5113','black cohosh':'8085','omega 3 plus 90':'8914'};
     const imp=table.rows.map((r,i)=>{
       let cod=gv(r,ck)||'';
       const name=gv(r,nk)||'Sin nombre';
