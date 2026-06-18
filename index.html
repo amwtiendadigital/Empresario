@@ -783,49 +783,49 @@ function saveSyncUrl(){
   toast(T('save')+' ✓');
   if(url)syncPrices();
 }
+function loadGviz(sheetId,gid){
+  return new Promise((resolve,reject)=>{
+    const cb='_gv'+Date.now();
+    const s=document.createElement('script');
+    const t=setTimeout(()=>{s.remove();delete window[cb];reject(new Error('timeout'));},15000);
+    window[cb]=(r)=>{clearTimeout(t);s.remove();delete window[cb];r.status==='ok'?resolve(r.table):reject(new Error(r.status||'err'));};
+    s.onerror=()=>{clearTimeout(t);s.remove();delete window[cb];reject(new Error('net'));};
+    s.src=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:${cb}&gid=${gid}`;
+    document.head.appendChild(s);
+  });
+}
+
 async function syncPrices(){
   const url=localStorage.getItem('syncUrl_'+country);
   if(!url){toast(T('no_sync_url'));return;}
   toast(T('syncing'));
   try{
-    const resp=await fetch(url);
-    const text=await resp.text();
-    let data;
-    try{data=JSON.parse(text);if(!Array.isArray(data))data=Object.values(data);}
-    catch{
-      const lines=text.trim().split('\n');
-      const headers=lines[0].split(',').map(h=>h.trim().replace(/["']/g,'').toLowerCase());
-      data=lines.slice(1).map(line=>{
-        const vals=line.split(',');
-        const obj={};
-        headers.forEach((h,i)=>obj[h]=(vals[i]||'').trim().replace(/["']/g,''));
-        return obj;
-      });
-    }
-    const keys=Object.keys(data[0]||{}).map(k=>k.toLowerCase());
-    const fk=pats=>keys.find(k=>pats.some(p=>k.includes(p)));
-    const nk=fk(['nombre','name','producto']);
-    const ck=fk(['codigo','code','cod']);
-    const catk=fk(['categ','cat']);
-    const ek=fk(['empresario','emp','dist','costo']);
-    const pk=fk(['pub','suger','retail','venta']);
-    const ptk=fk(['punto','pts','point']);
-    const parse=v=>parseFloat(String(v||0).replace(/[$.]/g,'').replace(',','.'))||0;
-    const gv=(row,key)=>key?Object.entries(row).find(([k])=>k.toLowerCase()===key)?.[1]??null:null;
-    const imp=data.map((row,i)=>({
-      id:String(gv(row,ck)||i),n:String(gv(row,nk)||'Sin nombre'),
-      cat:String(gv(row,catk)||'Importados'),sub:'',
-      cod:String(gv(row,ck)||''),desc:'',
-      emp:parse(gv(row,ek)),pub:parse(gv(row,pk)),
-      pts:parseFloat(gv(row,ptk)||0)||0
+    const gidMatch=url.match(/gid=(\d+)/);
+    const table=await loadGviz('1EiMWr8BYAscQjfzg-sQ4l9448hbLel7S0Roxf28-lYY', gidMatch?gidMatch[1]:'1781130644');
+    const cols=table.cols.map(c=>c.label.toLowerCase());
+    const fi=pats=>cols.findIndex(c=>pats.some(p=>c.includes(p)));
+    const nk=fi(['nombre','name','producto']);
+    const ck=fi(['codigo','code','cod']);
+    const catk=fi(['categ','cat']);
+    const ek=fi(['empresario','emp','dist','costo']);
+    const pk=fi(['pub','suger','retail','venta']);
+    const ptk=fi(['punto','pts','point']);
+    const gv=(r,k)=>k>=0?String(r.c[k]?.v??''):'';
+    const num=v=>parseFloat(String(v).replace(/[$,"]/g,''))||0;
+    const imp=table.rows.map((r,i)=>({
+      id:gv(r,ck)||String(i),n:gv(r,nk)||'Sin nombre',
+      cat:gv(r,catk)||'Importados',sub:'',
+      cod:gv(r,ck)||'',desc:'',
+      emp:num(gv(r,ek)),pub:num(gv(r,pk)),
+      pts:num(gv(r,ptk))
     })).filter(p=>p.n&&p.emp>0);
-    if(!imp.length){toast(T('sync_error'));return;}
+    if(!imp.length){toast(T('sync_error')+' 0');return;}
     prods=imp;saveProds();
     localStorage.setItem('lastSync_'+country,new Date().toLocaleString(COUNTRIES[country].locale));
     toast(T('sync_ok'));
     initCats();renderProducts();
     if(document.getElementById('v-ajustes').classList.contains('on'))renderSettings();
-  }catch(e){console.error(e);toast(T('sync_error'));}
+  }catch(e){console.error(e);toast('ERR:'+String(e).substring(0,60));}
 }
 
 // ═══════════════════════════════════════════
@@ -1361,7 +1361,7 @@ function importFile(e){
       const ptk=fk(['punto','pts','point']);
       if(!nk||!ek){toast('Columnas no reconocidas');return;}
       const gv=(row,key)=>key?Object.entries(row).find(([k])=>k.toLowerCase()===key)?.[1]??null:null;
-      const parse=v=>parseFloat(String(v||0).replace(/[$.]/g,'').replace(',','.'))||0;
+      const parse=v=>parseFloat(String(v||0).replace(/[$,"]/g,''))||0;
       const imp=rows.map((row,i)=>({
         id:gv(row,ck)||String(i),n:String(gv(row,nk)||'Sin nombre'),
         cat:String(gv(row,catk)||'Importados'),sub:'',
@@ -1494,17 +1494,19 @@ function renderSettings(){
 // ═══════════════════════════════════════════
 // CLIENT LINK GENERATOR
 // ═══════════════════════════════════════════
-const CLIENT_APP_URL = 'https://amwtiendadigital.github.io/cliente';
-
 function showClientLinkModal(){
+  const savedUrl = localStorage.getItem('clientAppUrl') || '';
   const savedTel = localStorage.getItem('clientWaTel')  || '';
   const savedNom = localStorage.getItem('clientNombre') || '';
-  const existingLink = savedTel
-    ? CLIENT_APP_URL + '/#tel=' + savedTel + '&nombre=' + encodeURIComponent(savedNom||'Mi Tienda AmwDigital')
+  const existingLink = (savedUrl && savedTel)
+    ? savedUrl.replace(/\/+$/,'') + '/#tel=' + savedTel + '&nombre=' + encodeURIComponent(savedNom||'Mi Tienda AmwDigital')
     : '';
   document.getElementById('mbox').innerHTML=`
     <div class="mtitle">🔗 Link para clientes</div>
-    <div class="mstep">Completá tus datos y compartí el link con tus clientes.</div>
+    <div class="mstep">Completá los datos y copiá el link para compartir tu tienda.</div>
+
+    <label class="flabel">URL de tu app de clientes (Netlify)</label>
+    <input class="finput" id="cl-url" placeholder="https://mi-tienda.netlify.app" value="${savedUrl}" type="url">
 
     <label class="flabel">Tu número de WhatsApp (con código de país)</label>
     <input class="finput" id="cl-tel" placeholder="ej. 5491112345678" value="${savedTel}" type="tel">
@@ -1524,12 +1526,15 @@ function showClientLinkModal(){
 }
 
 function generateClientLink(){
+  const url = document.getElementById('cl-url').value.trim().replace(/\/+$/,'');
   const tel = document.getElementById('cl-tel').value.trim().replace(/\D/g,'');
   const nom = document.getElementById('cl-nom').value.trim() || 'Mi Tienda AmwDigital';
+  if(!url){ alert('Ingresá la URL de tu app de clientes'); return; }
   if(!tel){ alert('Ingresá tu número de WhatsApp'); return; }
+  localStorage.setItem('clientAppUrl', url);
   localStorage.setItem('clientWaTel',  tel);
   localStorage.setItem('clientNombre', nom);
-  const link = CLIENT_APP_URL + '/#tel=' + tel + '&nombre=' + encodeURIComponent(nom);
+  const link = url + '/#tel=' + tel + '&nombre=' + encodeURIComponent(nom);
   document.getElementById('cl-link-text').textContent = link;
   document.getElementById('cl-result').style.display = 'block';
 }
@@ -1631,6 +1636,18 @@ applyLang();      // sets lang, country label, nav text, re-renders catalog
 updateBadge();
 updateClientModeUI();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+// Auto-sync al abrir: si hay URL configurada y pasó más de 1 hora desde el último sync
+(function autoSync(){
+  const SYNC_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hT4SJxlkUtxUoqkhFqiAahgB5zME7g7LGjXTyOaZFT1luygOYtAfd1I-UC9dJccTDMNK15miYe03/pub?gid=1781130644&single=true&output=csv';
+  const key = 'syncUrl_' + country;
+  if(!localStorage.getItem(key)) localStorage.setItem(key, SYNC_URL);
+  const lastRaw = localStorage.getItem('lastSyncTs_' + country);
+  const elapsed = lastRaw ? Date.now() - parseInt(lastRaw) : Infinity;
+  if(elapsed > 60 * 60 * 1000) {
+    syncPrices().then(()=> localStorage.setItem('lastSyncTs_' + country, Date.now()));
+  }
+})();
 </script>
 </body>
 </html>
