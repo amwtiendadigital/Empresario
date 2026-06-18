@@ -789,6 +789,20 @@ function saveSyncUrl(){
   toast(T('save')+' ✓');
   if(url)syncPrices();
 }
+async function checkForUpdate(){
+  if(!('serviceWorker' in navigator)){toast('Sin soporte de actualización');return;}
+  toast('Buscando actualización...');
+  try{
+    const reg=await navigator.serviceWorker.getRegistration();
+    if(!reg){toast('Sin actualización disponible');return;}
+    await reg.update();
+    if(reg.waiting){
+      reg.waiting.postMessage({type:'SKIP_WAITING'});
+    } else {
+      toast('Ya tenés la última versión ✓');
+    }
+  }catch(e){toast('Error: '+String(e).substring(0,50));}
+}
 function loadGviz(sheetId, sheetName){
   return new Promise((resolve,reject)=>{
     const cb='_gv'+Date.now();
@@ -1442,6 +1456,14 @@ function renderSettings(){
       💡 ${T('sync_hint')}
     </div>
 
+    <div class="stitle">Aplicación</div>
+    <div class="ssec">
+      <div class="srow" onclick="checkForUpdate()">
+        <span class="slabel">Buscar actualizaciones</span>
+        <span class="sval grn">↑</span>
+      </div>
+    </div>
+
     <div class="stitle">${T('price_list')}</div>
     <div class="ssec">
       <div class="srow" onclick="document.getElementById('filein').click()">
@@ -1635,7 +1657,10 @@ async function installApp(){
 applyLang();      // sets lang, country label, nav text, re-renders catalog
 updateBadge();
 updateClientModeUI();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  navigator.serviceWorker.addEventListener('controllerchange',()=>window.location.reload());
+}
 
 // Auto-sync al abrir: si el país tiene sheet configurado y pasó más de 1 hora
 (function autoSync(){

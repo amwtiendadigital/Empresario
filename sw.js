@@ -1,4 +1,4 @@
-const CACHE = 'amwdigital-v5';
+const CACHE = 'amwdigital-v6';
 
 // External CDN resources — cache-first (versioned, never change)
 const CDN_CACHE = 'amwdigital-cdn-v1';
@@ -14,6 +14,10 @@ const APP_ASSETS = [
   './icon-192.png',
   './icon-512.png'
 ];
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
 // ── INSTALL: pre-cache everything ──────────────────────────
 self.addEventListener('install', e => {
