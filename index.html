@@ -1494,19 +1494,17 @@ function renderSettings(){
 // ═══════════════════════════════════════════
 // CLIENT LINK GENERATOR
 // ═══════════════════════════════════════════
+const CLIENT_APP_URL = 'https://amwtiendadigital.github.io/cliente';
+
 function showClientLinkModal(){
-  const savedUrl = localStorage.getItem('clientAppUrl') || '';
-  const savedTel = localStorage.getItem('clientWaTel')  || '';
+  const savedTel = localStorage.getItem('clientWaTel') || '';
   const savedNom = localStorage.getItem('clientNombre') || '';
-  const existingLink = (savedUrl && savedTel)
-    ? savedUrl.replace(/\/+$/,'') + '/#tel=' + savedTel + '&nombre=' + encodeURIComponent(savedNom||'Mi Tienda AmwDigital')
+  const existingLink = savedTel
+    ? CLIENT_APP_URL + '/#tel=' + savedTel + '&nombre=' + encodeURIComponent(savedNom||'Mi Tienda AmwDigital')
     : '';
   document.getElementById('mbox').innerHTML=`
     <div class="mtitle">🔗 Link para clientes</div>
     <div class="mstep">Completá los datos y copiá el link para compartir tu tienda.</div>
-
-    <label class="flabel">URL de tu app de clientes (Netlify)</label>
-    <input class="finput" id="cl-url" placeholder="https://mi-tienda.netlify.app" value="${savedUrl}" type="url">
 
     <label class="flabel">Tu número de WhatsApp (con código de país)</label>
     <input class="finput" id="cl-tel" placeholder="ej. 5491112345678" value="${savedTel}" type="tel">
@@ -1526,15 +1524,12 @@ function showClientLinkModal(){
 }
 
 function generateClientLink(){
-  const url = document.getElementById('cl-url').value.trim().replace(/\/+$/,'');
   const tel = document.getElementById('cl-tel').value.trim().replace(/\D/g,'');
   const nom = document.getElementById('cl-nom').value.trim() || 'Mi Tienda AmwDigital';
-  if(!url){ alert('Ingresá la URL de tu app de clientes'); return; }
   if(!tel){ alert('Ingresá tu número de WhatsApp'); return; }
-  localStorage.setItem('clientAppUrl', url);
-  localStorage.setItem('clientWaTel',  tel);
+  localStorage.setItem('clientWaTel', tel);
   localStorage.setItem('clientNombre', nom);
-  const link = url + '/#tel=' + tel + '&nombre=' + encodeURIComponent(nom);
+  const link = CLIENT_APP_URL + '/#tel=' + tel + '&nombre=' + encodeURIComponent(nom);
   document.getElementById('cl-link-text').textContent = link;
   document.getElementById('cl-result').style.display = 'block';
 }
