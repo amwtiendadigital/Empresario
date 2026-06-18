@@ -661,7 +661,10 @@ const T     = key => (LANG[lang]?.[key]) ?? (LANG.es?.[key]) ?? key;
 const fmt   = n => (COUNTRIES[country]?.symbol||'$')+Math.round(n).toLocaleString(COUNTRIES[country]?.locale||'es-AR');
 const uid   = () => Date.now().toString(36)+Math.random().toString(36).slice(2);
 const getP  = id => prods.find(p=>p.id===id);
-const imgUrl = cod => `https://www.amway.com.ar/img_pict/380_Catalog/Products/large/380_${cod}.jpg`;
+const CA_COUNTRIES = ['GT','SV','HN','PA','CR'];
+const imgUrl = cod => CA_COUNTRIES.includes(country)
+  ? `https://www.amway.com.hn/img_pict/520_Catalog/Products/large/520_${cod}.jpg`
+  : `https://www.amway.com.ar/img_pict/380_Catalog/Products/large/380_${cod}.jpg`;
 const catIcon = cat => CAT_ICON[cat] || '📦';
 
 function toast(msg){
